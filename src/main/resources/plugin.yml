@@ -1,0 +1,5 @@
+name: NanaHopper
+version: '0.1.0'
+main: top.imbring.nanaHopper.NanaHopper
+api-version: '1.21'
+authors: [ Block_Bring ]
