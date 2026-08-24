@@ -1,0 +1,32 @@
+# NanaHopper language file (English)
+#
+# Color codes use the legacy '&' format, e.g. &a green, &c red, &e yellow, &7 gray.
+# Placeholders are written as %name% and are filled in by the plugin.
+# This file is editable; changes take effect after a server restart or /reload confirm.
+
+console:
+  enabled: "&aNanaHopper enabled successfully!"
+  disabled: "&cNanaHopper disabled"
+  goodbye: "&7Thanks for using, goodbye!"
+
+reminder:
+  hopper-place: "&eTip: use &a/hopper claim&e to take over a hopper, and &a/hopper speed&e to change its transfer speed."
+
+command:
+  player-only: "&cThis command can only be used by players."
+  usage: "&eUsage: /%command% <claim|release|speed [value]>"
+  not-looking-at-hopper: "&cYou are not looking at a hopper."
+  claim:
+    already-managed: "&eThis hopper is already managed by NanaHopper."
+    success: "&aThis hopper is now managed by NanaHopper."
+  release:
+    not-managed: "&eThis hopper is not managed by NanaHopper."
+    success: "&aThis hopper is no longer managed by NanaHopper."
+  speed:
+    not-managed: "&eThis hopper is not managed by NanaHopper. Claim it first with /hopper claim."
+    current: "&aThis hopper's speed is %speed% items/tick."
+    current-default: "&aThis hopper's speed is %speed% items/tick (vanilla default)."
+    invalid-number: "&cInvalid speed. Expected a number between %min% and %max% items/tick, or 'reset'."
+    out-of-range: "&cSpeed must be between %min% and %max% items/tick."
+    set: "&aThis hopper's speed is now %speed% items/tick."
+    set-default: "&aThis hopper's speed is now %speed% items/tick (vanilla default)."

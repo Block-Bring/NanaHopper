@@ -1,0 +1,32 @@
+# NanaHopper 语言文件（简体中文）
+#
+# 颜色代码使用旧版 '&' 格式，例如 &a 绿色、&c 红色、&e 黄色、&7 灰色。
+# 占位符写作 %name% 形式，由插件在运行时填充。
+# 本文件可自由编辑，修改后重启服务器或使用 /reload 生效。
+
+console:
+  enabled: "&aNanaHopper 启用成功！"
+  disabled: "&cNanaHopper 已禁用"
+  goodbye: "&7感谢使用，再见！"
+
+reminder:
+  hopper-place: "&e提示：使用 &a/hopper claim&e 可以接管漏斗，使用 &a/hopper speed&e 可以调整它的传输速度。"
+
+command:
+  player-only: "&c该命令只能由玩家使用。"
+  usage: "&e用法：/%command% <claim|release|speed [value]>"
+  not-looking-at-hopper: "&c你的准星没有指向漏斗。"
+  claim:
+    already-managed: "&e该漏斗已被 NanaHopper 接管。"
+    success: "&a该漏斗现已被 NanaHopper 接管。"
+  release:
+    not-managed: "&e该漏斗未被 NanaHopper 接管。"
+    success: "&a该漏斗已交还原版管理。"
+  speed:
+    not-managed: "&e该漏斗未被 NanaHopper 接管，请先使用 /hopper claim 接管。"
+    current: "&a该漏斗的速度为 %speed% 物品/刻。"
+    current-default: "&a该漏斗的速度为 %speed% 物品/刻（原版默认）。"
+    invalid-number: "&c无效的速度。请输入 %min% 到 %max% 之间的数字（单位：物品/刻），或使用 'reset'。"
+    out-of-range: "&c速度必须在 %min% 到 %max% 物品/刻之间。"
+    set: "&a该漏斗的速度已设置为 %speed% 物品/刻。"
+    set-default: "&a该漏斗的速度已设置为 %speed% 物品/刻（原版默认）。"

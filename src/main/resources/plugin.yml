@@ -1,5 +1,19 @@
 name: NanaHopper
-version: '0.1.0'
-main: top.imbring.nanaHopper.NanaHopper
-api-version: '1.21'
+version: '${version}'
+description: A modern Minecraft plugin supporting Minecraft 1.21+
+author: Block_Bring
 authors: [ Block_Bring ]
+api-version: 1.21
+main: top.imbring.nanaHopper.NanaHopper
+folia-supported: true
+
+commands:
+  hopper:
+    description: Manage hoppers taken over by NanaHopper.
+    usage: /hopper <claim|release|speed [value]>
+    permission: nanahopper.command.hopper
+
+permissions:
+  nanahopper.command.hopper:
+    description: Allows using the /hopper command.
+    default: op

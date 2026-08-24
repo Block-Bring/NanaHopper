@@ -1,0 +1,6 @@
+# NanaHopper configuration
+
+# Language file used for plugin messages (file name without .yml).
+# Bundled options: locale_us, locale_cn.
+# Custom languages can be created by copying an existing file in the lang/ folder.
+language: locale_cn
