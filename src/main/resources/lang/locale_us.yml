@@ -1,32 +1,34 @@
 # NanaHopper language file (English)
 #
-# Color codes use the legacy '&' format, e.g. &a green, &c red, &e yellow, &7 gray.
+# Messages use MiniMessage syntax, e.g. <green>, <red>, <yellow>, <bold>,
+# <gradient:red:blue>. Close tags like </green> are optional; styles apply
+# to the rest of the message by default. Unknown tags are shown as plain text.
 # Placeholders are written as %name% and are filled in by the plugin.
-# This file is editable; changes take effect after a server restart or /reload confirm.
+# This file is editable; changes take effect after a server restart or /reload.
 
 console:
-  enabled: "&aNanaHopper enabled successfully!"
-  disabled: "&cNanaHopper disabled"
-  goodbye: "&7Thanks for using, goodbye!"
+  enabled: "<green>NanaHopper enabled successfully!"
+  disabled: "<red>NanaHopper disabled"
+  goodbye: "<dark_gray>Thanks for using, goodbye!"
 
 reminder:
-  hopper-place: "&eTip: use &a/hopper claim&e to take over a hopper, and &a/hopper speed&e to change its transfer speed."
+  hopper-place: "<yellow>Tip: use <green>/hopper claim<yellow> to take over a hopper, and <green>/hopper speed<yellow> to change its transfer speed."
 
 command:
-  player-only: "&cThis command can only be used by players."
-  usage: "&eUsage: /%command% <claim|release|speed [value]>"
-  not-looking-at-hopper: "&cYou are not looking at a hopper."
+  player-only: "<red>This command can only be used by players."
+  usage: "<yellow>Usage: /%command% <claim|release|speed [value]>"
+  not-looking-at-hopper: "<red>You are not looking at a hopper."
   claim:
-    already-managed: "&eThis hopper is already managed by NanaHopper."
-    success: "&aThis hopper is now managed by NanaHopper."
+    already-managed: "<yellow>This hopper is already managed by NanaHopper."
+    success: "<green>This hopper is now managed by NanaHopper."
   release:
-    not-managed: "&eThis hopper is not managed by NanaHopper."
-    success: "&aThis hopper is no longer managed by NanaHopper."
+    not-managed: "<yellow>This hopper is not managed by NanaHopper."
+    success: "<green>This hopper is no longer managed by NanaHopper."
   speed:
-    not-managed: "&eThis hopper is not managed by NanaHopper. Claim it first with /hopper claim."
-    current: "&aThis hopper's speed is %speed% items/tick."
-    current-default: "&aThis hopper's speed is %speed% items/tick (vanilla default)."
-    invalid-number: "&cInvalid speed. Expected a number between %min% and %max% items/tick, or 'reset'."
-    out-of-range: "&cSpeed must be between %min% and %max% items/tick."
-    set: "&aThis hopper's speed is now %speed% items/tick."
-    set-default: "&aThis hopper's speed is now %speed% items/tick (vanilla default)."
+    not-managed: "<yellow>This hopper is not managed by NanaHopper. Claim it first with /hopper claim."
+    current: "<green>This hopper's speed is %speed% items/tick."
+    current-default: "<green>This hopper's speed is %speed% items/tick (vanilla default)."
+    invalid-number: "<red>Invalid speed. Expected a number between %min% and %max% items/tick, or 'reset'."
+    out-of-range: "<red>Speed must be between %min% and %max% items/tick."
+    set: "<green>This hopper's speed is now %speed% items/tick."
+    set-default: "<green>This hopper's speed is now %speed% items/tick (vanilla default)."

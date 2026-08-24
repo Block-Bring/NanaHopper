@@ -2,7 +2,7 @@ package top.imbring.nanaHopper.i18n;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -19,8 +19,9 @@ import java.util.Locale;
  * Loads the configurable language file from the plugin data folder and builds
  * prefixed, colored message components from it.
  *
- * <p>Messages use legacy '&' color codes; placeholders are written as
- * {@code %name%} and substituted when the message is built.
+ * <p>Messages use MiniMessage tags such as {@code <green>} or {@code <bold>};
+ * placeholders are written as {@code %name%} and substituted when the message
+ * is built. Unknown tags are left as plain text by MiniMessage.
  */
 public final class Messages {
 
@@ -29,7 +30,7 @@ public final class Messages {
         .append(Component.text("] ", NamedTextColor.AQUA));
 
     private static final String DEFAULT_LANGUAGE = "locale_us";
-    private static final LegacyComponentSerializer SERIALIZER = LegacyComponentSerializer.legacyAmpersand();
+    private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
     private final FileConfiguration messages;
 
@@ -82,7 +83,7 @@ public final class Messages {
         for (int i = 0; i + 1 < replacements.length; i += 2) {
             raw = raw.replace("%" + replacements[i] + "%", replacements[i + 1]);
         }
-        return PREFIX.append(SERIALIZER.deserialize(raw));
+        return PREFIX.append(MINI_MESSAGE.deserialize(raw));
     }
 
     private static void saveResourceIfAbsent(JavaPlugin plugin, String resourcePath) {
