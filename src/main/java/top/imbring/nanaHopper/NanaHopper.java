@@ -26,7 +26,8 @@ public final class NanaHopper extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new HopperInteractListener(managedHoppers, messages), this);
         getServer().getPluginManager().registerEvents(new HopperPlaceListener(messages), this);
 
-        HopperCommand hopperCommand = new HopperCommand(managedHoppers, messages);
+        boolean refreshPanel = getConfig().getBoolean("refresh-panel-after-command", true);
+        HopperCommand hopperCommand = new HopperCommand(managedHoppers, messages, refreshPanel);
         PluginCommand command = getCommand("hopper");
         if (command != null) {
             command.setExecutor(hopperCommand);

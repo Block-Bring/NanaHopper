@@ -9,6 +9,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import top.imbring.nanaHopper.hopper.HopperPanel;
 import top.imbring.nanaHopper.hopper.ManagedHoppers;
 import top.imbring.nanaHopper.i18n.Messages;
 
@@ -23,12 +24,10 @@ import top.imbring.nanaHopper.i18n.Messages;
  */
 public final class HopperInteractListener implements Listener {
 
-    private final ManagedHoppers managedHoppers;
-    private final Messages messages;
+    private final HopperPanel hopperPanel;
 
     public HopperInteractListener(ManagedHoppers managedHoppers, Messages messages) {
-        this.managedHoppers = managedHoppers;
-        this.messages = messages;
+        this.hopperPanel = new HopperPanel(managedHoppers, messages);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -56,22 +55,6 @@ public final class HopperInteractListener implements Listener {
     }
 
     private void showPanel(Player player, Hopper hopper) {
-        boolean managed = managedHoppers.isManaged(hopper.getLocation());
-        double speed = managedHoppers.getSpeed(hopper);
-
-        String statusKey = managed ? "panel.status.managed" : "panel.status.vanilla";
-        String statusText = messages.raw(statusKey + ".status-text");
-        String changeButton = messages.raw(statusKey + ".change-button");
-        String speedStatus = messages.raw(speed == ManagedHoppers.DEFAULT_SPEED
-            ? "panel.speed.vanilla" : "panel.speed.modified");
-
-        player.sendMessage(messages.component("panel.template",
-            "x", String.valueOf(hopper.getX()),
-            "y", String.valueOf(hopper.getY()),
-            "z", String.valueOf(hopper.getZ()),
-            "status_text", statusText,
-            "change_button", changeButton,
-            "speed", String.valueOf(speed),
-            "speed_status", speedStatus));
+        player.sendMessage(hopperPanel.render(hopper));
     }
 }
