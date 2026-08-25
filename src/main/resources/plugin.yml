@@ -10,7 +10,7 @@ folia-supported: true
 commands:
   hopper:
     description: Manage hoppers taken over by NanaHopper.
-    usage: /hopper <claim|release|speed [value]>
+    usage: /hopper <claim|release|speed [+/-value|reset]>
     permission: nanahopper.command.hopper
 
 permissions:

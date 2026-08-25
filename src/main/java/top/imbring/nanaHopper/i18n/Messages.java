@@ -17,11 +17,13 @@ import java.util.Locale;
 
 /**
  * Loads the configurable language file from the plugin data folder and builds
- * prefixed, colored message components from it.
+ * colored message components from it.
  *
- * <p>Messages use MiniMessage tags such as {@code <green>} or {@code <bold>};
- * placeholders are written as {@code %name%} and substituted when the message
- * is built. Unknown tags are left as plain text by MiniMessage.
+ * <p>Messages use MiniMessage tags such as {@code <green>} or {@code <bold>}
+ * and support multi-line values, so complete UI templates (panels, buttons
+ * with {@code <click:...>} tags) can live entirely in the language file.
+ * Placeholders are written as {@code {name}} and substituted before parsing;
+ * unknown tags are left as plain text by MiniMessage.
  */
 public final class Messages {
 
@@ -73,17 +75,47 @@ public final class Messages {
     }
 
     /**
-     * Builds a prefixed message component for the given key.
+     * Builds a prefixed message component for the given key, used for regular
+     * chat feedback.
      *
      * @param key          message key in the language file
      * @param replacements placeholder name / value pairs, e.g. "speed", "0.5"
      */
     public Component message(String key, String... replacements) {
-        String raw = messages.getString(key, key);
+        return PREFIX.append(component(key, replacements));
+    }
+
+    /**
+     * Builds an unprefixed component for the given key. Multi-line values
+     * are supported, making this suitable for user-editable UI templates.
+     *
+     * @param key          message key in the language file
+     * @param replacements placeholder name / value pairs
+     */
+    public Component component(String key, String... replacements) {
+        return MINI_MESSAGE.deserialize(applyPlaceholders(raw(key), replacements));
+    }
+
+    /**
+     * Returns the raw message string for the given key without placeholder
+     * substitution or MiniMessage parsing. Used when a template must be
+     * assembled from several keys before being deserialized.
+     */
+    public String raw(String key) {
+        return messages.getString(key, key);
+    }
+
+    /**
+     * Substitutes {@code {name}} placeholders in the given text.
+     *
+     * @param text         template text
+     * @param replacements placeholder name / value pairs
+     */
+    public static String applyPlaceholders(String text, String... replacements) {
         for (int i = 0; i + 1 < replacements.length; i += 2) {
-            raw = raw.replace("%" + replacements[i] + "%", replacements[i + 1]);
+            text = text.replace("{" + replacements[i] + "}", replacements[i + 1]);
         }
-        return PREFIX.append(MINI_MESSAGE.deserialize(raw));
+        return text;
     }
 
     private static void saveResourceIfAbsent(JavaPlugin plugin, String resourcePath) {

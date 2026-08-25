@@ -7,6 +7,7 @@ import top.imbring.nanaHopper.command.HopperCommand;
 import top.imbring.nanaHopper.hopper.ManagedHoppers;
 import top.imbring.nanaHopper.i18n.Messages;
 import top.imbring.nanaHopper.listener.HopperBlockListener;
+import top.imbring.nanaHopper.listener.HopperInteractListener;
 import top.imbring.nanaHopper.listener.HopperPlaceListener;
 
 public final class NanaHopper extends JavaPlugin {
@@ -22,6 +23,7 @@ public final class NanaHopper extends JavaPlugin {
         managedHoppers.scanLoadedChunks(getServer());
 
         getServer().getPluginManager().registerEvents(new HopperBlockListener(managedHoppers), this);
+        getServer().getPluginManager().registerEvents(new HopperInteractListener(managedHoppers, messages), this);
         getServer().getPluginManager().registerEvents(new HopperPlaceListener(messages), this);
 
         HopperCommand hopperCommand = new HopperCommand(managedHoppers, messages);
