@@ -20,6 +20,7 @@ public final class HopperCommand implements TabExecutor {
     private static final int REACH_DISTANCE = 5;
 
     private static final List<String> SUBCOMMANDS = List.of("claim", "release", "speed");
+    private static final List<String> SPEED_SUGGESTIONS = List.of("reset", "+0.1", "-0.1");
 
     private final ManagedHoppers managedHoppers;
     private final Messages messages;
@@ -63,9 +64,11 @@ public final class HopperCommand implements TabExecutor {
                 .filter(subcommand -> subcommand.startsWith(input))
                 .toList();
         }
-        if (args.length == 2 && args[0].equalsIgnoreCase("speed")
-            && "reset".startsWith(args[1].toLowerCase())) {
-            return List.of("reset");
+        if (args.length == 2 && args[0].equalsIgnoreCase("speed")) {
+            String input = args[1].toLowerCase();
+            return SPEED_SUGGESTIONS.stream()
+                .filter(s -> s.startsWith(input))
+                .toList();
         }
         return List.of();
     }
@@ -105,7 +108,12 @@ public final class HopperCommand implements TabExecutor {
             newSpeed = ManagedHoppers.DEFAULT_SPEED;
         } else {
             try {
-                newSpeed = Double.parseDouble(value);
+                if (value.startsWith("+") || value.startsWith("-")) {
+                    double delta = Double.parseDouble(value);
+                    newSpeed = managedHoppers.getSpeed(hopper) + delta;
+                } else {
+                    newSpeed = Double.parseDouble(value);
+                }
             } catch (NumberFormatException e) {
                 player.sendMessage(messages.message("command.speed.invalid-number",
                     "min", String.valueOf(ManagedHoppers.MIN_SPEED),
@@ -122,10 +130,10 @@ public final class HopperCommand implements TabExecutor {
         }
 
         managedHoppers.setSpeed(hopper, newSpeed);
-        String key = newSpeed == ManagedHoppers.DEFAULT_SPEED
+        String feedbackKey = newSpeed == ManagedHoppers.DEFAULT_SPEED
             ? "command.speed.set-default"
             : "command.speed.set";
-        player.sendMessage(messages.message(key, "speed", String.valueOf(newSpeed)));
+        player.sendMessage(messages.message(feedbackKey, "speed", String.valueOf(newSpeed)));
     }
 
     private void sendUsage(Player player, String label) {

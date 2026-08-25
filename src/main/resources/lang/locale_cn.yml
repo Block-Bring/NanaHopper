@@ -3,7 +3,7 @@
 # 消息使用 MiniMessage 语法，例如 <green>、<red>、<yellow>、<bold>、
 # <gradient:red:blue>。闭合标签（如 </green>）可以省略，样式默认作用于整条消息。
 # 无法识别的标签会作为纯文本原样显示。
-# 占位符写作 %name% 形式，由插件在运行时填充。
+# 占位符写作 {name} 形式，由插件在运行时填充。
 # 本文件可自由编辑，修改后重启服务器或使用 /reload 生效。
 
 console:
@@ -16,7 +16,7 @@ reminder:
 
 command:
   player-only: "<red>该命令只能由玩家使用。"
-  usage: "<yellow>用法：/%command% <claim|release|speed [value]>"
+  usage: "<yellow>用法：/{command} <claim|release|speed [+/-value|reset]>"
   not-looking-at-hopper: "<red>你的准星没有指向漏斗。"
   claim:
     already-managed: "<yellow>该漏斗已被 NanaHopper 接管。"
@@ -26,9 +26,35 @@ command:
     success: "<green>该漏斗已交还原版管理。"
   speed:
     not-managed: "<yellow>该漏斗未被 NanaHopper 接管，请先使用 /hopper claim 接管。"
-    current: "<green>该漏斗的速度为 %speed% 物品/刻。"
-    current-default: "<green>该漏斗的速度为 %speed% 物品/刻（原版默认）。"
-    invalid-number: "<red>无效的速度。请输入 %min% 到 %max% 之间的数字（单位：物品/刻），或使用 'reset'。"
-    out-of-range: "<red>速度必须在 %min% 到 %max% 物品/刻之间。"
-    set: "<green>该漏斗的速度已设置为 %speed% 物品/刻。"
-    set-default: "<green>该漏斗的速度已设置为 %speed% 物品/刻（原版默认）。"
+    current: "<green>该漏斗的速度为 {speed} 物品/刻。"
+    current-default: "<green>该漏斗的速度为 {speed} 物品/刻（原版默认）。"
+    invalid-number: "<red>无效的速度。请输入 {min} 到 {max} 之间的数字（单位：物品/刻），或使用 'reset'。"
+    out-of-range: "<red>速度必须在 {min} 到 {max} 物品/刻之间。"
+    set: "<green>该漏斗的速度已设置为 {speed} 物品/刻。"
+    set-default: "<green>该漏斗的速度已设置为 {speed} 物品/刻（原版默认）。"
+
+panel:
+  # 漏斗管理面板的完整模板，布局、文字、样式与按钮均可自由编辑。
+  # 占位符：{x} {y} {z} 漏斗坐标；{status_text} 状态文本；{change_button} 接管/释放按钮；
+  # {speed} 当前速度；{speed_status} 速度状态（原版/已修改）。
+  # 按钮通过 MiniMessage 的 <click:...> 标签实现，可直接在模板内自定义。
+  template: |
+    <aqua>[<green>NanaHopper<aqua>] <gold>═════ <green>漏斗管理 <gold>═════
+    <aqua>[<green>NanaHopper<aqua>] <gold>目标漏斗：</gold> <yellow>{x} {y} {z}
+    <aqua>[<green>NanaHopper<aqua>] <gold>接管状态：</gold> {status_text} {change_button}
+    <aqua>[<green>NanaHopper<aqua>] <gold>传输速度：</gold> <green>{speed} <gold>物品/刻 | {speed_status}
+    <aqua>[<green>NanaHopper<aqua>] <gold>═════════════════
+  status:
+    # 原版处理时
+    vanilla:
+      status-text: "<yellow>原版"
+      change-button: "<click:run_command:'/hopper claim'><green>[✚ 接管]</green></click>"
+    # 插件接管时
+    managed:
+      status-text: "<green>已接管"
+      change-button: "<click:run_command:'/hopper release'><red>[✘ 释放]</red></click>"
+  speed:
+    # 速度状态：原版默认时
+    vanilla: "<yellow>原版"
+    # 速度状态：已修改时
+    modified: "<green>已修改"
