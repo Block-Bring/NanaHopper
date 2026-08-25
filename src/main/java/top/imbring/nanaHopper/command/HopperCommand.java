@@ -1,11 +1,13 @@
 package top.imbring.nanaHopper.command;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.block.Block;
 import org.bukkit.block.Hopper;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
+import top.imbring.nanaHopper.hopper.HopperPanel;
 import top.imbring.nanaHopper.hopper.ManagedHoppers;
 import top.imbring.nanaHopper.i18n.Messages;
 
@@ -22,12 +24,18 @@ public final class HopperCommand implements TabExecutor {
     private static final List<String> SUBCOMMANDS = List.of("claim", "release", "speed");
     private static final List<String> SPEED_SUGGESTIONS = List.of("reset", "+0.1", "-0.1");
 
+    private static final Component EMPTY_LINE = Component.empty();
+
     private final ManagedHoppers managedHoppers;
     private final Messages messages;
+    private final HopperPanel hopperPanel;
+    private final boolean refreshPanel;
 
-    public HopperCommand(ManagedHoppers managedHoppers, Messages messages) {
+    public HopperCommand(ManagedHoppers managedHoppers, Messages messages, boolean refreshPanel) {
         this.managedHoppers = managedHoppers;
         this.messages = messages;
+        this.hopperPanel = new HopperPanel(managedHoppers, messages);
+        this.refreshPanel = refreshPanel;
     }
 
     @Override
@@ -74,24 +82,29 @@ public final class HopperCommand implements TabExecutor {
     }
 
     private void claim(Player player, Hopper hopper) {
+        Component feedback;
         if (!managedHoppers.claim(hopper)) {
-            player.sendMessage(messages.message("command.claim.already-managed"));
-            return;
+            feedback = messages.message("command.claim.already-managed");
+        } else {
+            feedback = messages.message("command.claim.success");
         }
-        player.sendMessage(messages.message("command.claim.success"));
+        sendPanelWithFeedback(player, hopper, feedback);
     }
 
     private void release(Player player, Hopper hopper) {
+        Component feedback;
         if (!managedHoppers.release(hopper)) {
-            player.sendMessage(messages.message("command.release.not-managed"));
-            return;
+            feedback = messages.message("command.release.not-managed");
+        } else {
+            feedback = messages.message("command.release.success");
         }
-        player.sendMessage(messages.message("command.release.success"));
+        sendPanelWithFeedback(player, hopper, feedback);
     }
 
     private void speed(Player player, Hopper hopper, String value) {
         if (!managedHoppers.isManaged(hopper.getLocation())) {
-            player.sendMessage(messages.message("command.speed.not-managed"));
+            sendPanelWithFeedback(player, hopper,
+                messages.message("command.speed.not-managed"));
             return;
         }
         if (value == null) {
@@ -99,7 +112,8 @@ public final class HopperCommand implements TabExecutor {
             String key = current == ManagedHoppers.DEFAULT_SPEED
                 ? "command.speed.current-default"
                 : "command.speed.current";
-            player.sendMessage(messages.message(key, "speed", String.valueOf(current)));
+            sendPanelWithFeedback(player, hopper,
+                messages.message(key, "speed", String.valueOf(current)));
             return;
         }
 
@@ -115,16 +129,18 @@ public final class HopperCommand implements TabExecutor {
                     newSpeed = Double.parseDouble(value);
                 }
             } catch (NumberFormatException e) {
-                player.sendMessage(messages.message("command.speed.invalid-number",
-                    "min", String.valueOf(ManagedHoppers.MIN_SPEED),
-                    "max", String.valueOf(ManagedHoppers.MAX_SPEED)));
+                sendPanelWithFeedback(player, hopper,
+                    messages.message("command.speed.invalid-number",
+                        "min", String.valueOf(ManagedHoppers.MIN_SPEED),
+                        "max", String.valueOf(ManagedHoppers.MAX_SPEED)));
                 return;
             }
             if (Double.isNaN(newSpeed) || newSpeed < ManagedHoppers.MIN_SPEED
                 || newSpeed > ManagedHoppers.MAX_SPEED) {
-                player.sendMessage(messages.message("command.speed.out-of-range",
-                    "min", String.valueOf(ManagedHoppers.MIN_SPEED),
-                    "max", String.valueOf(ManagedHoppers.MAX_SPEED)));
+                sendPanelWithFeedback(player, hopper,
+                    messages.message("command.speed.out-of-range",
+                        "min", String.valueOf(ManagedHoppers.MIN_SPEED),
+                        "max", String.valueOf(ManagedHoppers.MAX_SPEED)));
                 return;
             }
         }
@@ -133,7 +149,21 @@ public final class HopperCommand implements TabExecutor {
         String feedbackKey = newSpeed == ManagedHoppers.DEFAULT_SPEED
             ? "command.speed.set-default"
             : "command.speed.set";
-        player.sendMessage(messages.message(feedbackKey, "speed", String.valueOf(newSpeed)));
+        sendPanelWithFeedback(player, hopper,
+            messages.message(feedbackKey, "speed", String.valueOf(newSpeed)));
+    }
+
+    /**
+     * Sends the operation feedback. When panel refresh is enabled, an empty
+     * line and the updated management panel are shown before the feedback
+     * message to simulate a TUI-like experience.
+     */
+    private void sendPanelWithFeedback(Player player, Hopper hopper, Component feedback) {
+        if (refreshPanel) {
+            player.sendMessage(EMPTY_LINE);
+            player.sendMessage(hopperPanel.render(hopper));
+        }
+        player.sendMessage(feedback);
     }
 
     private void sendUsage(Player player, String label) {
