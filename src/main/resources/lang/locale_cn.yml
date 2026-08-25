@@ -47,11 +47,11 @@ panel:
   status:
     # 原版处理时
     vanilla:
-      status-text: "<yellow>原版"
+      status-text: "<yellow>■ 原版"
       change-button: "<click:run_command:'/hopper claim'><green>[✚ 接管]</green></click>"
     # 插件接管时
     managed:
-      status-text: "<green>已接管"
+      status-text: "<green>✔ 接管"
       change-button: "<click:run_command:'/hopper release'><red>[✘ 释放]</red></click>"
   speed:
     # 速度状态：原版默认时
