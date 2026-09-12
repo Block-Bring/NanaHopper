@@ -4,58 +4,108 @@
 # <gradient:red:blue>. Close tags like </green> are optional; styles apply
 # to the rest of the message by default. Unknown tags are shown as plain text.
 # Placeholders are written as {name} and are filled in by the plugin.
-# This file is editable; changes take effect after a server restart or /reload.
+# This file is editable; changes take effect after /nanahopper reload or a
+# server restart.
+#
+# Keys under "nanahopper" belong to the plugin itself (console logs and the
+# /nanahopper management command); keys under "hopper" belong to hopper
+# features (reminders, the /hopper command and the management panel).
 
-console:
-  enabled: "<green>NanaHopper enabled successfully!"
-  disabled: "<red>NanaHopper disabled"
-  goodbye: "<dark_gray>Thanks for using, goodbye!"
+nanahopper:
+  console:
+    enabled: "<green>NanaHopper enabled successfully!"
+    disabled: "<red>NanaHopper disabled"
+    goodbye: "<dark_gray>Thanks for using, goodbye!"
+  admin:
+    usage: "<yellow>Usage: /{command} <reload>"
+    reload:
+      success: "<green>Reloaded the configuration and language files."
+      fail: "<red>Failed to reload NanaHopper, check the console for details."
 
-reminder:
-  hopper-place: "<yellow>Tip: use <green>/hopper claim<yellow> to take over a hopper, and <green>/hopper speed<yellow> to change its transfer speed."
-
-command:
-  player-only: "<red>This command can only be used by players."
-  usage: "<yellow>Usage: /{command} <claim|release|speed [+/-value|reset]>"
-  not-looking-at-hopper: "<red>You are not looking at a hopper."
-  claim:
-    already-managed: "<yellow>This hopper is already managed by NanaHopper."
-    success: "<green>This hopper is now managed by NanaHopper."
-  release:
-    not-managed: "<yellow>This hopper is not managed by NanaHopper."
-    success: "<green>This hopper is no longer managed by NanaHopper."
-  speed:
-    not-managed: "<yellow>This hopper is not managed by NanaHopper. Claim it first with /hopper claim."
-    current: "<green>This hopper's speed is {speed} items/tick."
-    current-default: "<green>This hopper's speed is {speed} items/tick (vanilla default)."
-    invalid-number: "<red>Invalid speed. Expected a number between {min} and {max} items/tick, or 'reset'."
-    out-of-range: "<red>Speed must be between {min} and {max} items/tick."
-    set: "<green>This hopper's speed is now {speed} items/tick."
-    set-default: "<green>This hopper's speed is now {speed} items/tick (vanilla default)."
-
-panel:
-  # Full template of the hopper management panel; layout, text, styles and
-  # buttons are all freely editable. Placeholders: {x} {y} {z} hopper
-  # coordinates, {status_text} status text, {change_button} claim/release
-  # button, {speed} current speed, {speed_status} vanilla/modified marker.
-  # Buttons are implemented via MiniMessage <click:...> tags.
-  template: |
-    <aqua>[<green>NanaHopper<aqua>] <gold>═════ <green>Hopper Management <gold>═════
-    <aqua>[<green>NanaHopper<aqua>] <gold>Target Hopper:</gold> <yellow>{x} {y} {z}
-    <aqua>[<green>NanaHopper<aqua>] <gold>Status:</gold> {status_text} {change_button}
-    <aqua>[<green>NanaHopper<aqua>] <gold>Transfer Speed:</gold> <green>{speed} <gold>items/tick | {speed_status}
-    <aqua>[<green>NanaHopper<aqua>] <gold>═════════════════
-  status:
-    # Handled by vanilla
-    vanilla:
-      status-text: "<yellow>Vanilla"
-      change-button: "<click:run_command:'/hopper claim'><green>[✚ Claim]</green></click>"
-    # Taken over by the plugin
-    managed:
-      status-text: "<green>Managed"
-      change-button: "<click:run_command:'/hopper release'><red>[✘ Release]</red></click>"
-  speed:
-    # Speed status: vanilla default
-    vanilla: "<yellow>Vanilla"
-    # Speed status: modified
-    modified: "<green>Modified"
+hopper:
+  reminder:
+    hopper-place: "<yellow>Tip: use <green>/hopper claim<yellow> to take over a hopper, and <green>/hopper speed<yellow> to change its transfer speed."
+  command:
+    player-only: "<red>This command can only be used by players."
+    usage: "<yellow>Usage: /{command} <claim|release|speed [+/-value|reset]|editor <true|false|claim|release|speed [value]>>"
+    not-looking-at-hopper: "<red>You are not looking at a hopper."
+    claim:
+      already-managed: "<yellow>This hopper is already managed by NanaHopper."
+      success: "<green>This hopper is now managed by NanaHopper."
+    release:
+      not-managed: "<yellow>This hopper is not managed by NanaHopper."
+      success: "<green>This hopper is no longer managed by NanaHopper."
+    speed:
+      not-managed: "<yellow>This hopper is not managed by NanaHopper. Claim it first with /hopper claim."
+      current: "<green>This hopper's speed is {speed} items/tick."
+      current-default: "<green>This hopper's speed is {speed} items/tick (vanilla default)."
+      invalid-number: "<red>Invalid speed. Expected a number between {min} and {max} items/tick, or 'reset'."
+      out-of-range: "<red>Speed must be between {min} and {max} items/tick."
+      set: "<green>This hopper's speed is now {speed} items/tick."
+      set-default: "<green>This hopper's speed is now {speed} items/tick (vanilla default)."
+  editor:
+    item-name: "<green><bold>Hopper Editor"
+    created: "<green>The item is now a hopper property editor. Right-click opens the editor panel, sneak + right-click a hopper applies the stored properties."
+    restored: "<green>The item has been restored to its original state."
+    empty-hand: "<red>Hold an item in your main hand first."
+    already-editor: "<yellow>This item is already a hopper property editor. Use /hopper editor false to restore it."
+    not-editor: "<yellow>The item in your hand is not a hopper property editor."
+    applied: "<green>The stored properties have been applied to the hopper."
+    panel:
+      # Panel template dedicated to the editor item. Same placeholders as
+      # hopper.panel.template, but the buttons run the "/hopper editor ..."
+      # subcommands so they edit the stored properties instead of a hopper.
+      template: |
+        <aqua>[<green>NanaHopper<aqua>] <gold>═════ <green>Hopper Editor <gold>═════
+        <aqua>[<green>NanaHopper<aqua>] <gold>Target Item:</gold> <yellow>{target}
+        <aqua>[<green>NanaHopper<aqua>] <gold>Status:</gold> {status_text} {change_button}
+        <aqua>[<green>NanaHopper<aqua>] <gold>Transfer Speed:</gold> <green>{speed} <gold>items/tick | {speed_status} {speed_buttons}
+        <aqua>[<green>NanaHopper<aqua>] <gold>═════════════════
+      status:
+        # Applied result: vanilla
+        vanilla:
+          status-text: "<yellow>Vanilla"
+          change-button: "<click:run_command:'/hopper editor claim'><green>[✚ Claim]</green></click>"
+        # Applied result: taken over by the plugin
+        managed:
+          status-text: "<green>Managed"
+          change-button: "<click:run_command:'/hopper editor release'><red>[✘ Release]</red></click>"
+      speed:
+        # Speed adjustment buttons, running "/hopper editor speed ...".
+        buttons: "<click:run_command:'/hopper editor speed -0.1'><red>[-0.1]</red></click> <click:run_command:'/hopper editor speed +0.1'><green>[+0.1]</green></click> <click:run_command:'/hopper editor speed reset'><white>[Reset]</white></click>"
+        # Speed status: vanilla default
+        vanilla: "<yellow>Vanilla"
+        # Speed status: modified
+        modified: "<green>Modified"
+  panel:
+    # Full template of the hopper management panel; layout, text, styles and
+    # buttons are all freely editable. Placeholders: {target} target name
+    # (coordinates for a hopper block, item name for an editor item; also
+    # available as {x} {y} {z}, "-" for editor items), {status_text} status
+    # text, {change_button} claim/release button, {speed} current speed,
+    # {speed_status} vanilla/modified marker, {speed_buttons} speed
+    # adjustment buttons.
+    # Buttons are implemented via MiniMessage <click:...> tags.
+    template: |
+      <aqua>[<green>NanaHopper<aqua>] <gold>═════ <green>Hopper Management <gold>═════
+      <aqua>[<green>NanaHopper<aqua>] <gold>Target Hopper:</gold> <yellow>{target}
+      <aqua>[<green>NanaHopper<aqua>] <gold>Status:</gold> {status_text} {change_button}
+      <aqua>[<green>NanaHopper<aqua>] <gold>Transfer Speed:</gold> <green>{speed} <gold>items/tick | {speed_status} {speed_buttons}
+      <aqua>[<green>NanaHopper<aqua>] <gold>═════════════════
+    status:
+      # Handled by vanilla
+      vanilla:
+        status-text: "<yellow>Vanilla"
+        change-button: "<click:run_command:'/hopper claim'><green>[✚ Claim]</green></click>"
+      # Taken over by the plugin
+      managed:
+        status-text: "<green>Managed"
+        change-button: "<click:run_command:'/hopper release'><red>[✘ Release]</red></click>"
+    speed:
+      # Speed adjustment buttons; each one runs the corresponding /hopper
+      # speed subcommand when clicked.
+      buttons: "<click:run_command:'/hopper speed -0.1'><red>[-0.1]</red></click> <click:run_command:'/hopper speed +0.1'><green>[+0.1]</green></click> <click:run_command:'/hopper speed reset'><white>[Reset]</white></click>"
+      # Speed status: vanilla default
+      vanilla: "<yellow>Vanilla"
+      # Speed status: modified
+      modified: "<green>Modified"

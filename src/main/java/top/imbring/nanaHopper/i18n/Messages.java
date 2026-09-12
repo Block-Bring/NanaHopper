@@ -34,7 +34,7 @@ public final class Messages {
     private static final String DEFAULT_LANGUAGE = "locale_us";
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
-    private final FileConfiguration messages;
+    private volatile FileConfiguration messages;
 
     private Messages(FileConfiguration messages) {
         this.messages = messages;
@@ -45,18 +45,32 @@ public final class Messages {
      * loads the one selected in config.yml.
      */
     public static Messages load(JavaPlugin plugin) {
-        plugin.saveDefaultConfig();
+        return new Messages(readConfiguration(plugin));
+    }
 
-        String language = plugin.getConfig().getString("language", DEFAULT_LANGUAGE)
-            .toLowerCase(Locale.ROOT);
-        // Only allow simple file names to avoid path traversal.
-        if (!language.matches("[a-z0-9_]+")) {
-            language = DEFAULT_LANGUAGE;
-        }
+    /**
+     * Re-reads the language file selected in config.yml into this instance,
+     * so every component holding a reference to it sees the new messages.
+     */
+    public void reload(JavaPlugin plugin) {
+        this.messages = readConfiguration(plugin);
+    }
+
+    /**
+     * Resolves the path of the active language file relative to the plugin
+     * data folder, e.g. {@code lang/locale_us.yml}.
+     */
+    public static String languageFileName(JavaPlugin plugin) {
+        return "lang/" + resolveLanguage(plugin) + ".yml";
+    }
+
+    private static FileConfiguration readConfiguration(JavaPlugin plugin) {
+        plugin.saveDefaultConfig();
 
         saveResourceIfAbsent(plugin, "lang/locale_us.yml");
         saveResourceIfAbsent(plugin, "lang/locale_cn.yml");
 
+        String language = resolveLanguage(plugin);
         File file = new File(plugin.getDataFolder(), "lang/" + language + ".yml");
         if (!file.exists()) {
             plugin.getLogger().warning("Language file 'lang/" + language + ".yml' not found, falling back to '"
@@ -71,7 +85,17 @@ public final class Messages {
             plugin.getLogger().severe("Failed to load language file '" + file.getName()
                 + "', messages will show as plain keys: " + e.getMessage());
         }
-        return new Messages(configuration);
+        return configuration;
+    }
+
+    private static String resolveLanguage(JavaPlugin plugin) {
+        String language = plugin.getConfig().getString("language", DEFAULT_LANGUAGE)
+            .toLowerCase(Locale.ROOT);
+        // Only allow simple file names to avoid path traversal.
+        if (!language.matches("[a-z0-9_]+")) {
+            language = DEFAULT_LANGUAGE;
+        }
+        return language;
     }
 
     /**
