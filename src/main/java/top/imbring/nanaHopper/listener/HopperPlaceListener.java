@@ -36,7 +36,7 @@ public final class HopperPlaceListener implements Listener {
         Player player = event.getPlayer();
         // add() returns true only for the first placement in this session.
         if (remindedPlayers.add(player.getUniqueId())) {
-            player.sendMessage(messages.message("reminder.hopper-place"));
+            player.sendMessage(messages.message("hopper.reminder.hopper-place"));
         }
     }
 
