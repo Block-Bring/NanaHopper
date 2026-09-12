@@ -2,6 +2,7 @@ package top.imbring.nanaHopper.hopper;
 
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Server;
 import org.bukkit.World;
@@ -23,10 +24,12 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <p>The claim flag and the speed are stored in the hopper's
  * {@link PersistentDataContainer}, so they persist with the chunk data and
- * disappear automatically when the hopper block is destroyed. Two in-memory
- * structures back the runtime behaviour: a claimed-location index for O(1)
- * membership lookups, and a pacing state map holding only claimed hoppers
- * whose speed differs from the vanilla default.
+ * disappear automatically when the hopper block is destroyed. The in-memory
+ * cache is grouped by chunk: every loaded chunk owns one bucket holding the
+ * claimed-location index for O(1) membership lookups plus the pacing state of
+ * the hoppers whose speed differs from the vanilla default. A bucket only
+ * exists while its chunk is loaded, so the per-tick scan never has to touch
+ * unloaded chunks and unloading drops the whole bucket in O(1).
  *
  * <p>Speed pacing never moves items itself. Paced hoppers only get their
  * transfer cooldown adjusted every tick; the actual item movement, comparator
@@ -48,11 +51,8 @@ public final class ManagedHoppers {
     private final NamespacedKey managedKey;
     private final NamespacedKey speedKey;
 
-    /** world uuid -> all claimed hopper locations in that world */
-    private final Map<UUID, Set<Location>> claimed = new ConcurrentHashMap<>();
-
-    /** claimed hoppers whose speed differs from the default, with pacing state */
-    private final Map<Location, HopperRuntime> paced = new ConcurrentHashMap<>();
+    /** world uuid -> chunk key -> cached entries of that loaded chunk */
+    private final Map<UUID, Map<Long, ChunkBucket>> chunks = new ConcurrentHashMap<>();
 
     public ManagedHoppers(JavaPlugin plugin) {
         this.managedKey = new NamespacedKey(plugin, "managed");
@@ -69,9 +69,10 @@ public final class ManagedHoppers {
         hopper.update(true, false);
 
         Location location = hopper.getLocation();
-        getOrCreateClaimed(location.getWorld().getUID()).add(location);
+        ChunkBucket bucket = bucketFor(location);
+        bucket.claimed.add(location);
         if (getSpeed(hopper) != DEFAULT_SPEED) {
-            paced.put(location, new HopperRuntime());
+            bucket.paced.put(location, new HopperRuntime(location));
         }
         return true;
     }
@@ -89,15 +90,19 @@ public final class ManagedHoppers {
         hopper.setTransferCooldown(0);
         hopper.update(true, false);
 
-        removeFromClaimed(hopper.getLocation());
-        paced.remove(hopper.getLocation());
+        Location location = hopper.getLocation();
+        ChunkBucket bucket = bucketOf(location);
+        if (bucket != null) {
+            bucket.claimed.remove(location);
+            bucket.paced.remove(location);
+        }
         return true;
     }
 
     /** Whether the hopper at the given location is managed by NanaHopper. */
     public boolean isManaged(Location location) {
-        Set<Location> locations = claimed.get(location.getWorld().getUID());
-        return locations != null && locations.contains(location);
+        ChunkBucket bucket = bucketOf(location);
+        return bucket != null && bucket.claimed.contains(location);
     }
 
     /** The configured speed of the given hopper, in items per tick. */
@@ -112,11 +117,12 @@ public final class ManagedHoppers {
         hopper.update(true, false);
 
         Location location = hopper.getLocation();
+        ChunkBucket bucket = bucketFor(location);
         if (speed == DEFAULT_SPEED) {
             // Vanilla cooldown behaviour is already exactly this rate.
-            paced.remove(location);
+            bucket.paced.remove(location);
         } else {
-            paced.put(location, new HopperRuntime());
+            bucket.paced.put(location, new HopperRuntime(location));
         }
     }
 
@@ -129,28 +135,37 @@ public final class ManagedHoppers {
      * rate. No writes occur while the cooldown is already in sync.
      */
     public void tickPacedHoppers() {
-        for (Map.Entry<Location, HopperRuntime> entry : paced.entrySet()) {
-            tickPacedHopper(entry.getKey(), entry.getValue());
+        for (Map<Long, ChunkBucket> worldChunks : chunks.values()) {
+            for (ChunkBucket bucket : worldChunks.values()) {
+                // Most loaded chunks have no paced hopper; skip them before
+                // paying for the loaded-chunk lookup.
+                if (bucket.paced.isEmpty()
+                    || !bucket.world.isChunkLoaded(bucket.chunkX, bucket.chunkZ)) {
+                    continue;
+                }
+                for (Map.Entry<Location, HopperRuntime> entry : bucket.paced.entrySet()) {
+                    tickPacedHopper(bucket, entry.getKey(), entry.getValue());
+                }
+            }
         }
     }
 
-    private void tickPacedHopper(Location location, HopperRuntime runtime) {
-        World world = location.getWorld();
-        if (world == null || !world.isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4)) {
-            return;
-        }
-        Block block = location.getBlock();
-        if (!(block.getState() instanceof Hopper hopper)) {
+    private void tickPacedHopper(ChunkBucket bucket, Location location, HopperRuntime runtime) {
+        Block block = bucket.world.getBlockAt(runtime.x, runtime.y, runtime.z);
+        if (block.getType() != Material.HOPPER) {
             // Should have been cleaned up by the block listener already.
-            removeFromClaimed(location);
-            paced.remove(location);
+            bucket.claimed.remove(location);
+            bucket.paced.remove(location);
             return;
         }
+        // Live state: reads and writes go straight to the real block entity
+        // instead of a full snapshot copy, and no update() is needed.
+        Hopper hopper = (Hopper) block.getState(false);
 
         double speed = getSpeed(hopper);
         if (speed == DEFAULT_SPEED) {
             // Speed was reset externally; stop pacing but keep the claim.
-            paced.remove(location);
+            bucket.paced.remove(location);
             return;
         }
 
@@ -161,7 +176,6 @@ public final class ManagedHoppers {
             // Frozen: keep the cooldown far in the future.
             if (cooldown < FREEZE_THRESHOLD) {
                 hopper.setTransferCooldown(FREEZE_COOLDOWN);
-                hopper.update(true, false);
             }
             return;
         }
@@ -170,7 +184,6 @@ public final class ManagedHoppers {
             runtime.progress -= 1.0;
             if (cooldown > 0) {
                 hopper.setTransferCooldown(0);
-                hopper.update(true, false);
             }
         } else {
             // Ticks until the next item is allowed to move. Vanilla decrements
@@ -179,52 +192,52 @@ public final class ManagedHoppers {
             int ticksUntilTransfer = (int) Math.ceil((1.0 - runtime.progress) / speed);
             if (cooldown != ticksUntilTransfer) {
                 hopper.setTransferCooldown(ticksUntilTransfer);
-                hopper.update(true, false);
             }
         }
     }
 
     /** Scans a chunk and rebuilds its cached claimed hoppers from PDC data. */
     public void scanChunk(Chunk chunk) {
-        Set<Location> locations = getOrCreateClaimed(chunk.getWorld().getUID());
-        locations.removeIf(location -> location.getChunk().equals(chunk));
-        for (BlockState state : chunk.getTileEntities()) {
-            if (state instanceof Hopper hopper
-                && hopper.getPersistentDataContainer().has(managedKey, PersistentDataType.BYTE)) {
-                Location location = hopper.getLocation();
-                locations.add(location);
-                if (getSpeed(hopper) != DEFAULT_SPEED) {
-                    paced.put(location, new HopperRuntime());
-                } else {
-                    paced.remove(location);
-                }
+        ChunkBucket bucket = new ChunkBucket(chunk.getWorld(), chunk.getX(), chunk.getZ());
+        // Publish the bucket before filling it so a concurrent claim of a
+        // hopper in this chunk lands in the same bucket instead of being lost.
+        worldChunks(chunk.getWorld().getUID()).put(chunkKey(chunk.getX(), chunk.getZ()), bucket);
+
+        for (BlockState state : chunk.getTileEntities(
+            block -> block.getType() == Material.HOPPER, false)) {
+            if (!(state instanceof Hopper hopper)
+                || !hopper.getPersistentDataContainer().has(managedKey, PersistentDataType.BYTE)) {
+                continue;
+            }
+            Location location = hopper.getLocation();
+            bucket.claimed.add(location);
+            if (getSpeed(hopper) != DEFAULT_SPEED) {
+                bucket.paced.put(location, new HopperRuntime(location));
             }
         }
     }
 
     /** Drops the cached entries of an unloaded chunk; PDC data stays in the chunk. */
     public void unloadChunk(Chunk chunk) {
-        Set<Location> locations = claimed.get(chunk.getWorld().getUID());
-        if (locations != null) {
-            locations.removeIf(location -> location.getChunk().equals(chunk));
+        Map<Long, ChunkBucket> worldChunks = chunks.get(chunk.getWorld().getUID());
+        if (worldChunks != null) {
+            worldChunks.remove(chunkKey(chunk.getX(), chunk.getZ()));
         }
-        paced.keySet().removeIf(location -> location.getChunk().equals(chunk));
     }
 
     /** Drops the cached entries of a block that no longer holds the claim flag. */
     public void forget(Block block) {
         Location location = block.getLocation();
-        removeFromClaimed(location);
-        paced.remove(location);
+        ChunkBucket bucket = bucketOf(location);
+        if (bucket != null) {
+            bucket.claimed.remove(location);
+            bucket.paced.remove(location);
+        }
     }
 
     /** Drops all cached entries of an unloaded world. */
     public void unloadWorld(UUID worldId) {
-        claimed.remove(worldId);
-        paced.keySet().removeIf(location -> {
-            World world = location.getWorld();
-            return world != null && world.getUID().equals(worldId);
-        });
+        chunks.remove(worldId);
     }
 
     /** Scans all currently loaded chunks, used on plugin enable. */
@@ -236,21 +249,64 @@ public final class ManagedHoppers {
         }
     }
 
-    private Set<Location> getOrCreateClaimed(UUID worldId) {
-        return claimed.computeIfAbsent(worldId, id -> ConcurrentHashMap.newKeySet());
+    private ChunkBucket bucketOf(Location location) {
+        World world = location.getWorld();
+        Map<Long, ChunkBucket> worldChunks = chunks.get(world.getUID());
+        return worldChunks == null ? null
+            : worldChunks.get(chunkKey(location.getBlockX() >> 4, location.getBlockZ() >> 4));
     }
 
-    private void removeFromClaimed(Location location) {
-        Set<Location> locations = claimed.get(location.getWorld().getUID());
-        if (locations != null) {
-            locations.remove(location);
+    private ChunkBucket bucketFor(Location location) {
+        World world = location.getWorld();
+        int chunkX = location.getBlockX() >> 4;
+        int chunkZ = location.getBlockZ() >> 4;
+        return worldChunks(world.getUID()).computeIfAbsent(
+            chunkKey(chunkX, chunkZ),
+            key -> new ChunkBucket(world, chunkX, chunkZ));
+    }
+
+    private Map<Long, ChunkBucket> worldChunks(UUID worldId) {
+        return chunks.computeIfAbsent(worldId, id -> new ConcurrentHashMap<>());
+    }
+
+    private static long chunkKey(int chunkX, int chunkZ) {
+        return ((long) chunkX << 32) | (chunkZ & 0xFFFFFFFFL);
+    }
+
+    /** Cached entries of one loaded chunk. */
+    private static final class ChunkBucket {
+
+        private final World world;
+        private final int chunkX;
+        private final int chunkZ;
+
+        /** All claimed hopper locations in this chunk. */
+        private final Set<Location> claimed = ConcurrentHashMap.newKeySet();
+
+        /** Claimed hoppers whose speed differs from the default, with pacing state. */
+        private final Map<Location, HopperRuntime> paced = new ConcurrentHashMap<>();
+
+        private ChunkBucket(World world, int chunkX, int chunkZ) {
+            this.world = world;
+            this.chunkX = chunkX;
+            this.chunkZ = chunkZ;
         }
     }
 
     /** Mutable pacing state of a single paced hopper. */
     private static final class HopperRuntime {
 
+        private final int x;
+        private final int y;
+        private final int z;
+
         /** Fraction of an item accumulated towards the next transfer. */
         private double progress;
+
+        private HopperRuntime(Location location) {
+            this.x = location.getBlockX();
+            this.y = location.getBlockY();
+            this.z = location.getBlockZ();
+        }
     }
 }
