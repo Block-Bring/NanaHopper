@@ -58,7 +58,9 @@ public final class HopperInteractListener implements Listener {
 
         Player player = event.getPlayer();
         ItemStack hand = player.getInventory().getItemInMainHand();
-        if (hopperEditor.isEditor(hand)) {
+        // Air can never be an editor item; the type check skips the ItemMeta
+        // copy that isEditor would otherwise make on every empty-handed click.
+        if (hand.getType() != Material.AIR && hopperEditor.isEditor(hand)) {
             handleEditor(player, hand, event);
             return;
         }
